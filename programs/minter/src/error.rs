@@ -1,0 +1,9 @@
+use anchor_lang::prelude::*;
+
+#[error_code]
+pub enum MinterError {
+    #[msg("Unauthorized")]
+    Unauthorized,
+    #[msg("Amount must be greater than zero")]
+    InvalidAmount,
+}
