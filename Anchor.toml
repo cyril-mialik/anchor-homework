@@ -1,12 +1,19 @@
+skip_local_validator = true
+
 [toolchain]
-package_manager = "yarn"
+solana_version = "2.1.21"
 
 [features]
 resolution = true
 skip-lint = false
 
 [programs.localnet]
-anchor_homework = "Ac2EoaWNQCU8ntyBLGKRt4wBx8XYMmcaHsuQqnuGkL65"
+oracle = "Oracle111111111111111111111111111111111111"
+minter = "Minter1111111111111111111111111111111111111"
+
+[programs.devnet]
+oracle = "Oracle111111111111111111111111111111111111"
+minter = "Minter1111111111111111111111111111111111111"
 
 [provider]
 cluster = "localnet"

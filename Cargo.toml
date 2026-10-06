@@ -4,6 +4,9 @@ members = [
 ]
 resolver = "2"
 
+[workspace.package]
+edition = "2021"
+
 [profile.release]
 overflow-checks = true
 lto = "fat"
