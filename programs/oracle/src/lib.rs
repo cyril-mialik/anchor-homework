@@ -6,7 +6,7 @@ use anchor_lang::prelude::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("Oracle111111111111111111111111111111111111");
+declare_id!("8kkxyU8pQ9WoSVK3CC4frp5oB7Br2CVQMVoB32aoDeL7");
 
 #[program]
 pub mod oracle {

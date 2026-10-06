@@ -12,7 +12,11 @@ const wallet = new anchor.Wallet(Keypair.fromSecretKey(Uint8Array.from(secret)))
 const provider = new anchor.AnchorProvider(connection, wallet, {});
 anchor.setProvider(provider);
 
-const program = new anchor.Program(idl as any, process.env.ORACLE_PROGRAM_ID!, provider) as Program<Oracle>;
+const program = new anchor.Program(
+  idl as any,
+  process.env.ORACLE_PROGRAM_ID!,
+  provider,
+) as anchor.Program<Oracle>;
 const oracleState = new PublicKey(process.env.ORACLE_STATE_PUBKEY!);
 
 async function loop() {

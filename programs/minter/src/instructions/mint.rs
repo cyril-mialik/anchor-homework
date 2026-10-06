@@ -1,12 +1,10 @@
-use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{
-    mint_to, Mint, MintTo, TokenAccount, TokenInterface,
-};
 use crate::{
     error::MinterError,
     instructions::initialize::{CONFIG_SEED, MINT_AUTHORITY_SEED},
     state::MinterConfig,
 };
+use anchor_lang::prelude::*;
+use anchor_spl::token_interface::{mint_to, Mint, MintTo, TokenAccount, TokenInterface};
 
 #[derive(Accounts)]
 pub struct MintTokens<'info> {
@@ -34,7 +32,10 @@ pub struct MintTokens<'info> {
 pub fn handle_mint(ctx: Context<MintTokens>, amount: u64) -> Result<()> {
     require!(amount > 0, MinterError::InvalidAmount);
 
-    let seeds = &[MINT_AUTHORITY_SEED, &[ctx.accounts.config.mint_authority_bump]];
+    let seeds = &[
+        MINT_AUTHORITY_SEED,
+        &[ctx.accounts.config.mint_authority_bump],
+    ];
     let signer = &[&seeds[..]];
 
     mint_to(

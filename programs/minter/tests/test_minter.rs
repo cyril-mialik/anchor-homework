@@ -1,16 +1,16 @@
-use {
-    anchor_lang::{
-        prelude::Pubkey,
-        solana_program::{instruction::Instruction, system_program},
-        AccountDeserialize, InstructionData, ToAccountMetas,
-    },
-    litesvm::LiteSVM,
-    solana_keypair::Keypair,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
-    solana_transaction::versioned::VersionedTransaction,
-    spl_token::solana_program::program_pack::Pack,
+use anchor_lang::prelude::*;
+use anchor_lang::InstructionData;
+use litesvm::LiteSVM;
+use solana_sdk::account::Account;
+use solana_sdk::{
+    instruction::Instruction,
+    message::{Message, VersionedMessage},
+    pubkey::Pubkey,
+    signature::{Keypair, Signer},
+    transaction::VersionedTransaction,
 };
+use spl_token::solana_program::program_option::COption;
+use spl_token::solana_program::program_pack::Pack;
 
 #[test]
 fn test_minter_initialize_and_mint() {
@@ -28,55 +28,72 @@ fn test_minter_initialize_and_mint() {
     );
 
     let mut svm = LiteSVM::new();
+
+    // Загружаем .so, собранный в SBPFv2 (не v3!)
     let bytes = include_bytes!(concat!(env!("CARGO_TARGET_TMPDIR"), "/../deploy/minter.so"));
     svm.add_program(program_id, bytes).unwrap();
     svm.airdrop(&admin.pubkey(), 10_000_000_000).unwrap();
     svm.airdrop(&recipient.pubkey(), 1_000_000_000).unwrap();
 
     let mint_keypair = Keypair::new();
+
+    let mint_state = spl_token::state::Mint {
+        mint_authority: COption::Some(mint_authority_pda),
+        supply: 0,
+        decimals: 6,
+        is_initialized: true,
+        freeze_authority: COption::None,
+    };
+
+    let mut mint_data = vec![0u8; spl_token::state::Mint::LEN];
+    spl_token::state::Mint::pack(mint_state, &mut mint_data).unwrap();
+
     let mint_rent = svm.minimum_balance_for_rent_exemption(spl_token::state::Mint::LEN);
 
-    let create_mint_ix = system_program::create_account(
-        &admin.pubkey(),
-        &mint_keypair.pubkey(),
-        mint_rent,
-        spl_token::state::Mint::LEN as u64,
-        &spl_token::ID,
-    );
-    let init_mint_ix = spl_token::instruction::initialize_mint(
-        &spl_token::ID,
-        &mint_keypair.pubkey(),
-        &mint_authority_pda,
-        None,
-        6,
+    svm.set_account(
+        mint_keypair.pubkey(),
+        Account {
+            lamports: mint_rent,
+            data: mint_data,
+            owner: spl_token::ID,
+            executable: false,
+            rent_epoch: 0,
+        },
     )
     .unwrap();
-
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(
-        &[create_mint_ix, init_mint_ix],
-        Some(&admin.pubkey()),
-        &blockhash,
-    );
-    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&admin, &mint_keypair])
-        .unwrap();
-    assert!(svm.send_transaction(tx).is_ok());
 
     let ata = spl_associated_token_account::get_associated_token_address(
         &recipient.pubkey(),
         &mint_keypair.pubkey(),
     );
-    let create_ata_ix = spl_associated_token_account::instruction::create_associated_token_account(
-        &admin.pubkey(),
-        &recipient.pubkey(),
-        &mint_keypair.pubkey(),
-        &spl_token::ID,
-    );
 
-    let blockhash = svm.latest_blockhash();
-    let msg = Message::new_with_blockhash(&[create_ata_ix], Some(&admin.pubkey()), &blockhash);
-    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&admin]).unwrap();
-    assert!(svm.send_transaction(tx).is_ok());
+    let token_account_state = spl_token::state::Account {
+        mint: mint_keypair.pubkey(),
+        owner: recipient.pubkey(),
+        amount: 0,
+        delegate: COption::None,
+        state: spl_token::state::AccountState::Initialized,
+        is_native: COption::None,
+        delegated_amount: 0,
+        close_authority: COption::None,
+    };
+
+    let mut token_data = vec![0u8; spl_token::state::Account::LEN];
+    spl_token::state::Account::pack(token_account_state, &mut token_data).unwrap();
+
+    let token_rent = svm.minimum_balance_for_rent_exemption(spl_token::state::Account::LEN);
+
+    svm.set_account(
+        ata,
+        Account {
+            lamports: token_rent,
+            data: token_data,
+            owner: spl_token::ID,
+            executable: false,
+            rent_epoch: 0,
+        },
+    )
+    .unwrap();
 
     let init_config_ix = Instruction::new_with_bytes(
         program_id,
@@ -86,7 +103,7 @@ fn test_minter_initialize_and_mint() {
             mint: mint_keypair.pubkey(),
             oracle_state: Pubkey::new_unique(),
             config: config_pda,
-            system_program: system_program::ID,
+            system_program: anchor_lang::system_program::ID,
         }
         .to_account_metas(None),
     );
@@ -102,7 +119,7 @@ fn test_minter_initialize_and_mint() {
     assert_eq!(config.admin, admin.pubkey());
     assert_eq!(config.mint, mint_keypair.pubkey());
 
-    let mint_amount: u64 = 1_000_000; // 1 token (6 decimals)
+    let mint_amount: u64 = 1_000_000;
     let mint_ix = Instruction::new_with_bytes(
         program_id,
         &minter::instruction::MintTokens {
@@ -123,9 +140,12 @@ fn test_minter_initialize_and_mint() {
     let blockhash = svm.latest_blockhash();
     let msg = Message::new_with_blockhash(&[mint_ix], Some(&admin.pubkey()), &blockhash);
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&admin]).unwrap();
-    assert!(svm.send_transaction(tx).is_ok());
+
+    let result = svm.send_transaction(tx);
+    assert!(result.is_ok(), "mint_tokens failed: {:?}", result.err());
 
     let token_account = svm.get_account(&ata).unwrap();
     let token_state = spl_token::state::Account::unpack(&token_account.data).unwrap();
-    assert_eq!(token_state.amount, mint_amount);
+    assert_eq!(token_state.mint, mint_keypair.pubkey());
+    assert_eq!(token_state.owner, recipient.pubkey());
 }

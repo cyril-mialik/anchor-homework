@@ -19,8 +19,8 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 import idl from "./idl/minter.json";
 import type { Minter } from "./idl/minter";
 
-const PROGRAM_ID = new PublicKey("Minter1111111111111111111111111111111111111");
-const DEVNET_RPC = "https://api.devnet.solana.com";
+const PROGRAM_ID = new PublicKey("FMmfQ9jce2s52kkmiDZAZ9stmdT912pMdfR3ERn3QydG");
+const DEVNET_RPC = "https://api.devnet.solana.com"https://api.devnet.solana.com8kkxyU8pQ9WoSVK3CC4frp5oB7Br2CVQMVoB32aoDeL7;
 
 // ── Контекст провайдеров ────────────────────────────────────────
 function App() {

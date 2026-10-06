@@ -5,10 +5,11 @@ use {
         AccountDeserialize, InstructionData, ToAccountMetas,
     },
     litesvm::LiteSVM,
-    solana_keypair::Keypair,
-    solana_message::{Message, VersionedMessage},
-    solana_signer::Signer,
-    solana_transaction::versioned::VersionedTransaction,
+    solana_sdk::{
+        message::{Message, VersionedMessage},
+        signature::{Keypair, Signer},
+        transaction::VersionedTransaction,
+    },
 };
 
 #[test]
@@ -29,6 +30,7 @@ fn test_oracle_initialize_and_update() {
     svm.add_program(program_id, bytes).unwrap();
     svm.airdrop(&authority.pubkey(), 1_000_000_000).unwrap();
 
+    // initialize
     let ix = Instruction::new_with_bytes(
         program_id,
         &oracle::instruction::Initialize {}.data(),
@@ -45,6 +47,7 @@ fn test_oracle_initialize_and_update() {
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&authority]).unwrap();
     assert!(svm.send_transaction(tx).is_ok());
 
+    // update_price
     let ix = Instruction::new_with_bytes(
         program_id,
         &oracle::instruction::UpdatePrice { price: 42, timestamp: 1 }.data(),
