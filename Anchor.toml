@@ -13,8 +13,8 @@ minter = "FMmfQ9jce2s52kkmiDZAZ9stmdT912pMdfR3ERn3QydG"
 oracle = "8kkxyU8pQ9WoSVK3CC4frp5oB7Br2CVQMVoB32aoDeL7"
 
 [programs.localnet]
-minter = "FMmfQ9jce2s52kkmiDZAZ9stmdT912pMdfR3ERn3QydG"
-oracle = "8kkxyU8pQ9WoSVK3CC4frp5oB7Br2CVQMVoB32aoDeL7"
+minter = "F9mxneKkEGG85vcJ7dJuALh7bFRDVFFEJcZHhgCbDS3Z"
+oracle = "AXSKfP5a9j21DYnAJrHrG97mbfVfqiRQ7pzfTiZn5dJe"
 
 [provider]
 cluster = "localnet"
